@@ -1,136 +1,127 @@
-import numpy as np
-import pandas as pd
-import PIL
-import scipy
-import matplotlib.pyplot as plt
+# =====================================================================================
+# PROBLEM A2
+#
+# Build a Neural Network Model for Horse or Human Dataset.
+# The test will expect it to classify binary classes.
+# Your input layer should accept 150x150 with 3 bytes color as the input shape.
+# Don't use lambda layers in your model.
+#
+# The dataset used in this problem is created by Laurence Moroney (laurencemoroney.com).
+#
+# Desired accuracy and validation_accuracy > 83%
+# ======================================================================================
 
+import urllib.request
+import zipfile
+
+import keras.optimizers
 import tensorflow as tf
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import tensorflow_datasets as tfds
+import os
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.optimizers import RMSprop
 
-from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPool1D, Dense, Dropout, Bidirectional, LSTM
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import Sequential
+def solution_A2():
+    data_url_1 = 'https://github.com/dicodingacademy/assets/releases/download/release-horse-or-human/horse-or-human.zip'
+    urllib.request.urlretrieve(data_url_1, 'horse-or-human.zip')
+    local_file = 'horse-or-human.zip'
+    zip_ref = zipfile.ZipFile(local_file, 'r')
+    zip_ref.extractall('data/horse-or-human')
 
-# Download datasets
-imdb, info = tfds.load('imdb_reviews', with_info=True, as_supervised=True)
+    data_url_2 = 'https://github.com/dicodingacademy/assets/raw/main/Simulation/machine_learning/validation-horse-or-human.zip'
+    urllib.request.urlretrieve(data_url_2, 'validation-horse-or-human.zip')
+    local_file = 'validation-horse-or-human.zip'
+    zip_ref = zipfile.ZipFile(local_file, 'r')
+    zip_ref.extractall('data/validation-horse-or-human')
+    zip_ref.close()
 
-# Split dataset
-train_data, test_data = imdb['train'], imdb['test']
+    TRAINING_DIR = 'data/horse-or-human'
+    # Augment image
+    train_datagen = ImageDataGenerator(
+        rescale=1 / 255,
+    )
 
-# Init sentences and labels
-training_sentences = []
-training_labels = []
+    # YOUR IMAGE SIZE SHOULD BE 150x150
+    train_generator = train_datagen.flow_from_directory(
+        directory=TRAINING_DIR,
+        batch_size=32,
+        target_size=(150, 150),
+        class_mode='binary'
+    )
 
-testing_sentences = []
-testing_labels = []
+    VALIDATION_DIR = 'data/validation-horse-or-human'
+    valid_datagen = ImageDataGenerator(
+        rescale=1 / 255.
+    )
 
-# Loop training examples and save sentence and label
-for sentences, labels in train_data:
-    training_sentences.append(sentences.numpy().decode('utf8'))
-    training_labels.append(labels.numpy())
+    valid_generator = valid_datagen.flow_from_directory(
+        directory=VALIDATION_DIR,
+        batch_size=32,
+        target_size=(150, 150),
+        class_mode='binary'
+    )
 
-# Loop test examples and save sentence and label
-for sentences, labels in test_data:
-    testing_sentences.append(sentences.numpy().decode('utf8'))
-    testing_labels.append(labels.numpy())
+    # Build model
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(150, 150, 3)),
+        tf.keras.layers.MaxPooling2D(2, 2),
 
-# Convert final labels into numpy array
-training_labels_final = np.array(training_labels)
-testing_labels_final = np.array(testing_labels)
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
 
-# Param
-vocab_size = 6000
-max_length = 130
-trunc_type = 'post'
-oov_token = '<OOV>'
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
 
-# Init Tokenizer
-tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_token)
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
 
-# Generate word index dictionary
-tokenizer.fit_on_texts(training_sentences)
-word_index = tokenizer.word_index
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(2, 2),
 
-# Generate and pad training sentences
-sequences = tokenizer.texts_to_sequences(training_sentences)
-padded = pad_sequences(sequences=sequences, maxlen=max_length, truncating=trunc_type)
+        tf.keras.layers.Flatten(),
 
-# Generate aand pad test sentences
-testing_sequences = tokenizer.texts_to_sequences(testing_sentences)
-testing_padded = pad_sequences(sequences=testing_sequences, maxlen=max_length)
+        tf.keras.layers.Dense(512, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
 
-def plot_graphs(history, string):
-    plt.plot(history.history[string])
-    plt.plot(history.history[f'val_{string}'])
-    plt.xlabel("Epochs")
-    plt.ylabel(string)
-    plt.legend([string, f'val_{string}'])
-    plt.show()
+    # COmpile model
+    model.compile(
+        loss='binary_crossentropy',
+        optimizer=RMSprop(learning_rate=0.001),
+        metrics=['accuracy']
+    )
 
-embedding_dim = 128
-# kernel_size = 5
-dropout_rate = 0.05
+    class StopWhenReach90(tf.keras.callbacks.Callback):
+        def __init__(self, monitor1='accuracy', monitor2='val_accuracy', target=0.90):
+            super(StopWhenReach90, self).__init__()
+            self.monitor1 = monitor1
+            self.monitor2 = monitor2
+            self.target = target
 
-# Build model
-model = Sequential([
-    Embedding(vocab_size, embedding_dim, input_length=max_length),
-    Bidirectional(LSTM(32, return_sequences=True)),
-    GlobalMaxPool1D(),
-    Dense(20, activation='relu'),
-    Dropout(0.05),
-    Dense(1, activation='sigmoid')
-])
+        def on_epoch_end(self, epoch, logs=None):
+            current1 = logs.get(self.monitor1)
+            current2 = logs.get(self.monitor2)
+            if current1 is not None and current2 is not None:
+                if current1 >= self.target and current2 >= self.target:
+                    print(
+                        f"\nEpoch {epoch + 1}: {self.monitor1} and {self.monitor2} have reached {self.target}. Stopping training.")
+                    self.model.stop_training = True
 
-# Compile model
-adam = Adam(learning_rate=0.001)
-model.compile(loss='binary_crossentropy', optimizer=adam, metrics=['accuracy'])
+    custom_callback = StopWhenReach90('accuracy', 'val_accuracy', 0.87)
 
-model.summary()
+    # Train model
+    model.fit(
+        train_generator,
+        epochs=20,
+        validation_data=valid_generator,
+        callbacks=[custom_callback]
+    )
 
-class CustomEarlyStoppingAccuracy83(tf.keras.callbacks.Callback):
-    def __init__(self, monitor1='accuracy', monitor2='val_accuracy', target=0.83):
-        super(CustomEarlyStoppingAccuracy83, self).__init__()
-        self.monitor1 = monitor1
-        self.monitor2 = monitor2
-        self.target = target
+    return model
 
-    def on_epoch_end(self, epoch, logs=None):
-        current1 = logs.get(self.monitor1)
-        current2 = logs.get(self.monitor2)
-        if current1 is not None and current2 is not None:
-            if current1 >= self.target and current2 >= self.target:
-                print(f"\nEpoch {epoch+1}: {self.monitor1} and {self.monitor2} have reached {self.target}. Stopping training.")
-                self.model.stop_training = True
 
-early_stopping = CustomEarlyStoppingAccuracy83('accuracy', 'val_accuracy', target=0.83)
-
-BATCH_SIZE = 100
-NUM_EPOCHS = 50
-
-num_train_examples = info.splits['train'].num_examples
-num_test_examples = info.splits['test'].num_examples
-
-validation_split = 0.2
-num_val_examples = int(num_train_examples * validation_split)
-
-history_conv = model.fit(
-    padded[:-num_val_examples],
-    training_labels_final[:-num_val_examples],
-    epochs=NUM_EPOCHS,
-    validation_data=(padded[-num_val_examples:], training_labels_final[-num_val_examples:]),
-    callbacks=[early_stopping]
-)
-
-plot_graphs(history_conv, 'accuracy')
-plot_graphs(history_conv, 'loss')
-
-results = model.evaluate(testing_padded, testing_labels_final)
-
-metrics_names = model.metrics_names
-for name, value in zip(metrics_names, results):
-    print(f'{name}: {value}')
-
-# Save the model
-model.save('model_A2.h5')
+# The code below is to save your model as a .h5 file.
+# It will be saved automatically in your Submission folder.
+if __name__ == '__main__':
+    # DO NOT CHANGE THIS CODE
+    model = solution_A2()
+    model.save("model_A2.h5")

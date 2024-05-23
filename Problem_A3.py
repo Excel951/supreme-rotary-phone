@@ -1,107 +1,110 @@
-import numpy as np
-import pandas as pd
-import PIL
-import scipy
-import matplotlib.pyplot as plt
+# ======================================================================================================
+# PROBLEM A3
+#
+# Build a classifier for the Human or Horse Dataset with Transfer Learning.
+# The test will expect it to classify binary classes.
+# Note that all the layers in the pre-trained model are non-trainable.
+# Do not use lambda layers in your model.
+#
+# The horse-or-human dataset used in this problem is created by Laurence Moroney (laurencemoroney.com).
+# Inception_v3, pre-trained model used in this problem is developed by Google.
+#
+# Desired accuracy and validation_accuracy > 97%.
+# =======================================================================================================
 
+import urllib.request
+import zipfile
 import tensorflow as tf
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import tensorflow_datasets as tfds
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras import layers
+from tensorflow.keras import Model
+from tensorflow.keras.applications.inception_v3 import InceptionV3
 
-from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPool1D, Dense, Dropout, Bidirectional, LSTM
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import Sequential
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
-# Download datasets
-imdb, info = tfds.load('imdb_reviews', with_info=True, as_supervised=True)
+def solution_A3():
+    inceptionv3 = 'https://storage.googleapis.com/mledu-datasets/inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5'
+    urllib.request.urlretrieve(
+        inceptionv3, 'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5')
+    local_weights_file = 'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
-# Split dataset
-train_data, test_data = imdb['train'], imdb['test']
+    pre_trained_model = InceptionV3(
+        input_shape=(150, 150, 3),
+        include_top=False,
+        weights=None
+    )
 
-# Init sentences and labels
-training_sentences = []
-training_labels = []
+    pre_trained_model.load_weights(local_weights_file)
 
-testing_sentences = []
-testing_labels = []
+    for layer in pre_trained_model.layers:
+        layer.trainable = False
 
-# Loop training examples and save sentence and label
-for sentences, labels in train_data:
-    training_sentences.append(sentences.numpy().decode('utf8'))
-    training_labels.append(labels.numpy())
+    last_layer = pre_trained_model.get_layer('mixed7')
+    last_output = last_layer.output
 
-# Loop test examples and save sentence and label
-for sentences, labels in test_data:
-    testing_sentences.append(sentences.numpy().decode('utf8'))
-    testing_labels.append(labels.numpy())
+    data_url_1 = 'https://github.com/dicodingacademy/assets/releases/download/release-horse-or-human/horse-or-human.zip'
+    urllib.request.urlretrieve(data_url_1, 'horse-or-human.zip')
+    local_file = 'horse-or-human.zip'
+    zip_ref = zipfile.ZipFile(local_file, 'r')
+    zip_ref.extractall('data/horse-or-human')
+    zip_ref.close()
 
-# Convert final labels into numpy array
-training_labels_final = np.array(training_labels)
-testing_labels_final = np.array(testing_labels)
+    data_url_2 = 'https://github.com/dicodingacademy/assets/raw/main/Simulation/machine_learning/validation-horse-or-human.zip'
+    urllib.request.urlretrieve(data_url_2, 'validation-horse-or-human.zip')
+    local_file = 'validation-horse-or-human.zip'
+    zip_ref = zipfile.ZipFile(local_file, 'r')
+    zip_ref.extractall('data/validation-horse-or-human')
+    zip_ref.close()
 
-# Param
-vocab_size = 10000
-max_length = 120
-embedding_dim = 16
-trunc_type = 'post'
-oov_token = '<OOV>'
+    train_dir = 'data/horse-or-human'
+    validation_dir = 'data/validation-horse-or-human'
 
-# Init Tokenizer
-tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_token)
+    train_datagen = ImageDataGenerator(
+        rescale=1. / 255.,
+        rotation_range=40,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
 
-# Generate word index dictionary
-tokenizer.fit_on_texts(training_sentences)
-word_index = tokenizer.word_index
+    # YOUR IMAGE SIZE SHOULD BE 150x150
+    train_generator = train_datagen.flow_from_directory(
+        directory=train_dir,
+        batch_size=20,
+        class_mode='binary',
+        target_size=(150, 150)
+    )
 
-print(f'Word index: {len(word_index)}')
+    valid_datagen = ImageDataGenerator(
+        rescale=1./255.
+    )
 
-# Generate and pad training sentences
-sequences = tokenizer.texts_to_sequences(training_sentences)
-padded = pad_sequences(sequences=sequences, maxlen=max_length, padding='post', truncating=trunc_type)
+    valid_generator = valid_datagen.flow_from_directory(
+        directory=validation_dir,
+        batch_size=20,
+        class_mode='binary',
+        target_size=(150, 150)
+    )
 
-# Generate and pad test sentences
-testing_sequences = tokenizer.texts_to_sequences(testing_sentences)
-testing_padded = pad_sequences(sequences=testing_sequences, maxlen=max_length, padding='post')
+    x = layers.Flatten()(last_output)
+    x = layers.Dense(1024, 'relu')(x)
+    x = layers.Dropout(0.2)(x)
+    x = layers.Dense(1, activation='sigmoid')(x)
 
-def plot_graphs(history, string):
-    plt.plot(history.history[string])
-    plt.plot(history.history[f'{string}'])
-    plt.xlabel("Epochs")
-    plt.ylabel(string)
-    plt.legend([string, f'{string}'])
-    plt.show()
+    model = Model(pre_trained_model.input, x)
 
-# Build model
-model = tf.keras.Sequential([
-    Embedding(vocab_size, embedding_dim, input_length=max_length),
-    tf.keras.layers.Flatten(),
-    Dense(6, 'relu'),
-    Dense(1, 'sigmoid')
-])
-#
-# Compile model
-adam = Adam(learning_rate=0.001)
-model.compile(loss='binary_crossentropy', optimizer=adam, metrics=['accuracy'])
-#
-model.summary()
+    model.compile(optimizer=RMSprop(learning_rate=0.0001),
+                  loss='binary_crossentropy',
+                  metrics=['acc'])
 
-# BATCH_SIZE = 100
-NUM_EPOCHS = 10
+    return model
 
-num_train_examples = info.splits['train'].num_examples
-num_test_examples = info.splits['test'].num_examples
-
-history_conv = model.fit(
-    padded,
-    training_labels_final,
-    epochs=NUM_EPOCHS,
-    validation_data=(testing_padded, testing_labels_final),
-)
-
-plot_graphs(history_conv, 'accuracy')
-plot_graphs(history_conv, 'val_accuracy')
-
-# Save the model
-model.save('model_A3.h5')
+# The code below is to save your model as a .h5 file.
+# It will be saved automatically in your Submission folder.
+if __name__ == '__main__':
+    # DO NOT CHANGE THIS CODE
+    model=solution_A3()
+    model.save("model_A3.h5")

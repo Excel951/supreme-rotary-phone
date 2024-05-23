@@ -1,138 +1,115 @@
-import numpy as np
-import pandas as pd
-import PIL
-import scipy
-import matplotlib.pyplot as plt
+# =======================================================================================
+# PROBLEM A5
+#
+# Build and train a neural network model using the Sunspots.csv dataset.
+# Use MAE as the metrics of your neural network model.
+# We provided code for normalizing the data. Please do not change the code.
+# Do not use lambda layers in your model.
+#
+# The dataset used in this problem is downloaded from kaggle.com/robervalt/sunspots
+#
+# Desired MAE < 0.15 on the normalized dataset.
+# ========================================================================================
 
+import csv
 import tensorflow as tf
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import tensorflow_datasets as tfds
+import numpy as np
+import urllib
 
-from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPool1D, Dense, Dropout, Bidirectional, LSTM
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras import Sequential
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-# Download datasets
-imdb, info = tfds.load('imdb_reviews', with_info=True, as_supervised=True)
+# DO NOT CHANGE THIS CODE
+def windowed_dataset(series, window_size, batch_size, shuffle_buffer):
+    series = tf.expand_dims(series, axis=-1)
+    ds = tf.data.Dataset.from_tensor_slices(series)
+    ds = ds.window(window_size + 1, shift=1, drop_remainder=True)
+    ds = ds.flat_map(lambda w: w.batch(window_size + 1))
+    ds = ds.shuffle(shuffle_buffer)
+    ds = ds.map(lambda w: (w[:-1], w[1:]))
+    return ds.batch(batch_size).prefetch(1)
 
-# Split dataset
-train_data, test_data = imdb['train'], imdb['test']
 
-# Init sentences and labels
-training_sentences = []
-training_labels = []
+def solution_A5():
+    data_url = 'https://github.com/dicodingacademy/assets/raw/main/Simulation/machine_learning/sunspots.csv'
+    urllib.request.urlretrieve(data_url, 'sunspots.csv')
 
-testing_sentences = []
-testing_labels = []
+    time_step = []
+    sunspots = []
 
-# Loop training examples and save sentence and label
-for sentences, labels in train_data:
-    training_sentences.append(sentences.numpy().decode('utf8'))
-    training_labels.append(labels.numpy())
+    with open('sunspots.csv') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        next(reader)
+        for row in reader:
+            sunspots.append(  # YOUR CODE HERE
+                float(row[2])
+            )
+            time_step.append(  # YOUR CODE HERE
+                int(row[0])
+            )
 
-# Loop test examples and save sentence and label
-for sentences, labels in test_data:
-    testing_sentences.append(sentences.numpy().decode('utf8'))
-    testing_labels.append(labels.numpy())
+    series = np.array(sunspots)
 
-# Convert final labels into numpy array
-training_labels_final = np.array(training_labels)
-testing_labels_final = np.array(testing_labels)
+    # Normalization Function. DO NOT CHANGE THIS CODE
+    min = np.min(series)
+    max = np.max(series)
+    series -= min
+    series /= max
+    time = np.array(time_step)
 
-# Param
-vocab_size = 10000
-max_length = 120
-trunc_type = 'post'
-oov_token = '<OOV>'
+    # DO NOT CHANGE THIS CODE
+    split_time = 3000
 
-# Init Tokenizer
-tokenizer = Tokenizer(num_words=vocab_size, oov_token=oov_token)
+    time_train = time[:split_time]
+    x_train = series[:split_time]
+    time_valid = time[split_time:]
+    x_valid = series[split_time:]
 
-# Generate word index dictionary
-tokenizer.fit_on_texts(training_sentences)
-word_index = tokenizer.word_index
+    # DO NOT CHANGE THIS CODE
+    window_size = 30
+    batch_size = 32
+    shuffle_buffer_size = 1000
 
-# Generate and pad training sentences
-sequences = tokenizer.texts_to_sequences(training_sentences)
-padded = pad_sequences(sequences=sequences, maxlen=max_length, truncating=trunc_type)
+    train_set = windowed_dataset(x_train, window_size=window_size,
+                                 batch_size=batch_size, shuffle_buffer=shuffle_buffer_size)
 
-# Generate aand pad test sentences
-testing_sequences = tokenizer.texts_to_sequences(testing_sentences)
-testing_padded = pad_sequences(sequences=testing_sequences, maxlen=max_length)
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.InputLayer(input_shape=[None, 1]),
+        tf.keras.layers.Dense(30, activation='relu'),
+        tf.keras.layers.Dense(10, activation='relu'),
+        # YOUR CODE HERE.
+        tf.keras.layers.Dense(1)
+    ])
 
-embeddings_index = {}
-with open('./glove.6B.100d.txt', encoding='utf-8') as f:
-    for line in f:
-        values = line.split()
-        word = values[0]
-        coefs = np.asarray(values[1:], dtype='float32')
-        embeddings_index[word] = coefs
+    # YOUR CODE
+    model.summary()
 
-# Create the embedding matrix
-embedding_dim = 100
-embedding_matrix = np.zeros((vocab_size, embedding_dim))
-for word, i in word_index.items():
-    if i < vocab_size:
-        embedding_vector = embeddings_index.get(word)
-        if embedding_vector is not None:
-            embedding_matrix[i] = embedding_vector
+    sgd_optimizer = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=2e-5)
 
-def plot_graphs(history, string):
-    plt.plot(history.history[string])
-    plt.plot(history.history[f'val_{string}'])
-    plt.xlabel("Epochs")
-    plt.ylabel(string)
-    plt.legend([string, f'val_{string}'])
-    plt.show()
+    huber_loss = tf.keras.losses.Huber()
 
-# Build model
-model = tf.keras.Sequential([
-    Embedding(vocab_size, embedding_dim, input_length=max_length, weights=[embedding_matrix], trainable=False),
-    Bidirectional(LSTM(64, return_sequences=True)),
-    Dropout(0.5),
-    Bidirectional(LSTM(64)),
-    Dropout(0.5),
-    Dense(64, activation='relu'),
-    Dropout(0.5),
-    Dense(1, activation='sigmoid')
-])
+    model.compile(loss=huber_loss, optimizer=sgd_optimizer, metrics=['mae'])
 
-# Compile model
-adam = Adam(learning_rate=0.001)
-model.compile(loss='binary_crossentropy', optimizer=adam, metrics=['accuracy', tf.keras.metrics.MeanAbsoluteError()])
+    class StopWhenReachDesireMAE(tf.keras.callbacks.Callback):
+        def __init__(self, monitor='mae', target=0.14):
+            self.monitor = monitor
+            self.target = target
 
-model.summary()
+        def on_epoch_end(self, epoch, logs=None):
+            current = logs.get(self.monitor)
+            if current is not None:
+                if current <= self.target:
+                    print(f'\nEpoch {epoch + 1}: {self.monitor} have reached {self.target}. Stopping training.')
+                    self.model.stop_training = True
 
-early_stopping = EarlyStopping(monitor='val_mean_absolute_error', patience=5, restore_best_weights=True)
-reduce_lr = ReduceLROnPlateau(monitor='val_mean_absolute_error', factor=0.2, patience=3, min_lr=1e-6)
+    stop_callback = StopWhenReachDesireMAE('mae', 0.11)
 
-# BATCH_SIZE = 100
-NUM_EPOCHS = 50
+    model.fit(train_set, epochs=150, callbacks=[stop_callback])
 
-num_train_examples = info.splits['train'].num_examples
-num_test_examples = info.splits['test'].num_examples
+    return model
 
-validation_split = 0.2
-num_val_examples = int(num_train_examples * validation_split)
 
-history_conv = model.fit(
-    padded[:-num_val_examples],
-    training_labels_final[:-num_val_examples],
-    epochs=NUM_EPOCHS,
-    validation_data=(padded[-num_val_examples:], training_labels_final[-num_val_examples:]),
-    callbacks=[early_stopping, reduce_lr]
-)
-
-plot_graphs(history_conv, 'accuracy')
-plot_graphs(history_conv, 'mean_absolute_error')
-
-results = model.evaluate(testing_padded, testing_labels_final)
-
-metrics_names = model.metrics_names
-for name, value in zip(metrics_names, results):
-    print(f'{name}: {value}')
-
-# Save the model
-model.save('model_A5.h5')
+# The code below is to save your model as a .h5 file.
+# It will be saved automatically in your Submission folder.
+if __name__ == '__main__':
+    # DO NOT CHANGE THIS CODE
+    model = solution_A5()
+    model.save("model_A5.h5")
