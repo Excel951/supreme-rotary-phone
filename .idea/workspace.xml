@@ -4,19 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ec30a418-d34b-4486-a548-88384663260f" name="Changes" comment="Initial">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem_A1.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem_A1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem_A2.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem_A2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem_A3.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem_A3.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem_A4.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem_A4.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem_A5.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem_A5.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_A1.h5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_A2.h5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_A3.h5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_A4.h5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_A5.h5" beforeDir="false" />
-    </list>
+    <list default="true" id="ec30a418-d34b-4486-a548-88384663260f" name="Changes" comment="Finished simulasi ujian tensorflow" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -32,18 +20,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Excel951"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Excel951&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Excel951/supreme-rotary-phone.git",
-    "accountId": "6e3404f5-4f5f-416b-b0aa-66c98dc35579"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Excel951/supreme-rotary-phone.git&quot;,
+    &quot;accountId&quot;: &quot;6e3404f5-4f5f-416b-b0aa-66c98dc35579&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -53,22 +41,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.Problem_A1.executor": "Run",
-    "Python.Problem_A2.executor": "Run",
-    "Python.Problem_A3.executor": "Run",
-    "Python.Problem_A4.executor": "Run",
-    "Python.Problem_A5.executor": "Run",
-    "Python.fixProblem_A2.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.tutorial.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/IDe/PycharmProjects/Simulasi_Ujian_TensorFlow_Developer_Certificate_1",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.Problem_A1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Problem_A2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Problem_A3.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Problem_A4.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Problem_A5.executor&quot;: &quot;Run&quot;,
+    &quot;Python.fixProblem_A2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tutorial.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/IDe/PycharmProjects/Simulasi_Ujian_TensorFlow_Developer_Certificate_1&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\IDe\PycharmProjects\Simulasi_Ujian_TensorFlow_Developer_Certificate_1" />
@@ -106,7 +94,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716346508692</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Finished simulasi ujian tensorflow">
+      <option name="closed" value="true" />
+      <created>1716426630961</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1716426630961</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -122,6 +118,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial" />
-    <option name="LAST_COMMIT_MESSAGE" value="Initial" />
+    <MESSAGE value="Finished simulasi ujian tensorflow" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finished simulasi ujian tensorflow" />
   </component>
 </project>
